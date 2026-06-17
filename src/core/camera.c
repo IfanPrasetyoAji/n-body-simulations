@@ -1,17 +1,71 @@
 #include "camera.h"
+#include <raylib.h>
+#include <raymath.h>
 
 void CameraInit(CameraController *cc) {
   cc->cam = (Camera3D){0};
-  cc->cam.position = (Vector3){5.0f, 5.0f, 5.0f};
+  cc->cam.position = (Vector3){0.0f, 20.0f, 40.0f};
   cc->cam.target = (Vector3){0.0f, 0.0f, 0.0f};
   cc->cam.up = (Vector3){0.0f, 1.0f, 0.0f};
   cc->cam.fovy = 45.0f;
   cc->cam.projection = CAMERA_PERSPECTIVE;
-  DisableCursor();
+
+  cc->movementSpeed = 5.0f;
+  cc->rotationSpeed = 0.1f;
 }
 
 void CameraUpdate(CameraController *cc) {
-  UpdateCamera(&cc->cam, CAMERA_THIRD_PERSON);
+  cc->movement = (Vector3){0.0f, 0.0f, 0.0f};
+  cc->rotation = (Vector3){0.0f, 0.0f, 0.0f};
+  cc->zoom = 0.0f;
+
+  _HandleCameraMovement(cc);
+  _HandleCameraRotation(cc);
+  _HandleCameraZoom(cc);
+
+  UpdateCameraPro(&cc->cam, cc->movement, cc->rotation, cc->zoom);
 }
 
 Camera3D GetCamera(CameraController *cc) { return cc->cam; }
+
+void _HandleCameraMovement(CameraController *cc) {
+  if (IsKeyDown(KEY_W))
+    cc->movement.x += 0.1f;
+  if (IsKeyDown(KEY_S))
+    cc->movement.x -= 0.1f;
+  if (IsKeyDown(KEY_A))
+    cc->movement.y -= 0.1f;
+  if (IsKeyDown(KEY_D))
+    cc->movement.y += 0.1f;
+
+  cc->movement = Vector3Scale(cc->movement, cc->movementSpeed);
+}
+
+void _HandleCameraRotation(CameraController *cc) {
+  Vector2 delta = GetMouseDelta();
+
+  if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+    cc->lastCursorLocation = GetMousePosition();
+  }
+
+  if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+    HideCursor();
+    cc->rotation.x += delta.x;
+    cc->rotation.y += delta.y;
+    SetMousePosition(cc->lastCursorLocation.x, cc->lastCursorLocation.y);
+  }
+
+  if (IsMouseButtonReleased(MOUSE_RIGHT_BUTTON)) {
+    ShowCursor();
+  }
+
+  cc->rotation = Vector3Scale(cc->rotation, cc->rotationSpeed);
+}
+
+void _HandleCameraZoom(CameraController *cc) {
+  cc->zoom -= GetMouseWheelMove() * 1.0f;
+
+  if (IsMouseButtonPressed(MOUSE_MIDDLE_BUTTON)) {
+    cc->zoom = 0.0f;
+  }
+}
